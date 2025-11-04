@@ -44,3 +44,31 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 После запуска приложения документация доступна по адресам:
 - Swagger UI: http://localhost:8000/docs
 - ReDoc: http://localhost:8000/redoc
+
+## Docker
+
+### Сборка образа
+```bash
+docker build -t test-backend-api .
+```
+
+### Запуск контейнера
+```bash
+docker run -d -p 8000:8000 --name test-api test-backend-api
+```
+
+### Остановка контейнера
+```bash
+docker stop test-api
+docker rm test-api
+```
+
+### Просмотр логов
+```bash
+docker logs test-api
+```
+
+### Интерактивный режим (для отладки)
+```bash
+docker run -it -p 8000:8000 test-backend-api
+```

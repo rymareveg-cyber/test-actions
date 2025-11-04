@@ -63,3 +63,6 @@ Thumbs.db
 .AppleDouble
 .LSOverride
 
+# Docker
+.dockerignore
+
