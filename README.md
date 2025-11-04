@@ -39,6 +39,40 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ### `GET /health`
 Проверка здоровья сервиса
 
+### `GET /convert-time`
+Конвертирует время из UTC в указанный часовой пояс.
+
+**Параметры:**
+- `time` (строка) - Время в UTC. Поддерживаемые форматы:
+  - `15:00` или `15:00:00` - только время
+  - `2024-01-15 15:00:00` - дата и время
+  - `2024-01-15T15:00:00` - ISO формат
+- `timezone` (строка) - Название часового пояса или города:
+  - Названия городов: `Ekaterinburg`, `Moscow`, `London`, `New York`, `Tokyo` и др.
+  - IANA timezone: `Asia/Yekaterinburg`, `Europe/Moscow`, `Europe/London` и др.
+
+**Пример запроса:**
+```
+GET /convert-time?time=15:00&timezone=Ekaterinburg
+```
+
+**Пример ответа:**
+```json
+{
+  "input_time_utc": "2024-01-15 15:00:00 UTC",
+  "input_time": "15:00",
+  "target_timezone": "Asia/Yekaterinburg",
+  "converted_time": "2024-01-15 20:00:00",
+  "converted_time_only": "20:00:00",
+  "time_only": "20:00",
+  "offset": "+0500",
+  "timezone_name": "Asia/Yekaterinburg"
+}
+```
+
+### `GET /timezones`
+Возвращает список поддерживаемых городов и примеры IANA timezone названий
+
 ## Документация API
 
 После запуска приложения документация доступна по адресам:
