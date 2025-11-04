@@ -1,0 +1,65 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyd
+*.pyc
+*.pyo
+*.egg
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE и редакторы
+.vscode/
+.cursor/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Системные файлы
+.python_history
+*.log
+*.tmp
+*.bak
+*.cache
+
+# Конфигурационные файлы пользователя (вне проекта)
+../.python_history
+../ide_state.json
+../mcp.json
+../extensions.json
+../argv.json
+
+# Node.js (если используется)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# Окружения
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Операционная система
+Thumbs.db
+.DS_Store
+.AppleDouble
+.LSOverride
+
