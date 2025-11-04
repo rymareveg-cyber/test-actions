@@ -1,4 +1,7 @@
-from fastapi import FastAPI, Query, HTTPException
+from fastapi import FastAPI, Query, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from datetime import datetime
 from typing import Dict
 import pytz
@@ -8,6 +11,9 @@ app = FastAPI(
     description="Простое тестовое API для получения текущей даты и времени сервера",
     version="1.0.0"
 )
+
+# Настройка шаблонов
+templates = Jinja2Templates(directory="templates")
 
 # Маппинг популярных названий городов на часовые пояса
 TIMEZONE_ALIASES = {
@@ -27,10 +33,18 @@ TIMEZONE_ALIASES = {
 }
 
 
-@app.get("/")
-async def root() -> Dict[str, str]:
+@app.get("/", response_class=HTMLResponse)
+async def root(request: Request):
     """
-    Корневой эндпоинт с информацией об API
+    Главная страница с веб-интерфейсом
+    """
+    return templates.TemplateResponse("index.html", {"request": request})
+
+
+@app.get("/api/info")
+async def api_info() -> Dict[str, str]:
+    """
+    Информация об API (JSON)
     """
     return {
         "message": "Test Backend API",
