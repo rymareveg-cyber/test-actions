@@ -12,6 +12,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # Копируем код приложения
 COPY main.py .
+COPY templates/ templates/
 
 # Открываем порт 8000
 EXPOSE 8000
