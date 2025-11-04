@@ -40,38 +40,36 @@ uvicorn main:app --reload --host 0.0.0.0 --port 8000
 Проверка здоровья сервиса
 
 ### `GET /convert-time`
-Конвертирует время из UTC в указанный часовой пояс.
+Конвертирует время из UTC в указанный часовой пояс
 
 **Параметры:**
-- `time` (строка) - Время в UTC. Поддерживаемые форматы:
-  - `15:00` или `15:00:00` - только время
-  - `2024-01-15 15:00:00` - дата и время
-  - `2024-01-15T15:00:00` - ISO формат
-- `timezone` (строка) - Название часового пояса или города:
-  - Названия городов: `Ekaterinburg`, `Moscow`, `London`, `New York`, `Tokyo` и др.
-  - IANA timezone: `Asia/Yekaterinburg`, `Europe/Moscow`, `Europe/London` и др.
+- `time` (обязательный) - время в формате HH:MM или HH:MM:SS (UTC)
+- `timezone` (обязательный) - часовой пояс (можно использовать название города или формат Region/City)
 
-**Пример запроса:**
+**Примеры:**
 ```
 GET /convert-time?time=15:00&timezone=Ekaterinburg
+GET /convert-time?time=15:00&timezone=Asia/Yekaterinburg
+GET /convert-time?time=14:30&timezone=Moscow
 ```
 
-**Пример ответа:**
+**Ответ:**
 ```json
 {
-  "input_time_utc": "2024-01-15 15:00:00 UTC",
-  "input_time": "15:00",
-  "target_timezone": "Asia/Yekaterinburg",
-  "converted_time": "2024-01-15 20:00:00",
-  "converted_time_only": "20:00:00",
-  "time_only": "20:00",
-  "offset": "+0500",
-  "timezone_name": "Asia/Yekaterinburg"
+  "input_time_utc": "15:00",
+  "input_timezone": "UTC",
+  "output_time": "20:00:00",
+  "output_time_short": "20:00",
+  "output_datetime": "2024-01-15T20:00:00+05:00",
+  "output_timezone": "Asia/Yekaterinburg",
+  "timezone_name": "Asia/Yekaterinburg",
+  "utc_offset": "+0500"
 }
 ```
 
-### `GET /timezones`
-Возвращает список поддерживаемых городов и примеры IANA timezone названий
+**Поддерживаемые форматы часовых поясов:**
+- Название города: `Ekaterinburg`, `Moscow`, `London`, `New York`
+- Стандартный формат: `Asia/Yekaterinburg`, `Europe/Moscow`, `America/New_York`
 
 ## Документация API
 

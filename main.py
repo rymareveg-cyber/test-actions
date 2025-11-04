@@ -1,7 +1,6 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Query, HTTPException
 from datetime import datetime
 from typing import Dict
-from zoneinfo import ZoneInfo
 import pytz
 
 app = FastAPI(
@@ -9,6 +8,23 @@ app = FastAPI(
     description="Простое тестовое API для получения текущей даты и времени сервера",
     version="1.0.0"
 )
+
+# Маппинг популярных названий городов на часовые пояса
+TIMEZONE_ALIASES = {
+    "ekaterinburg": "Asia/Yekaterinburg",
+    "yekaterinburg": "Asia/Yekaterinburg",
+    "екатеринбург": "Asia/Yekaterinburg",
+    "moscow": "Europe/Moscow",
+    "москва": "Europe/Moscow",
+    "new york": "America/New_York",
+    "london": "Europe/London",
+    "tokyo": "Asia/Tokyo",
+    "beijing": "Asia/Shanghai",
+    "shanghai": "Asia/Shanghai",
+    "berlin": "Europe/Berlin",
+    "paris": "Europe/Paris",
+    "sydney": "Australia/Sydney",
+}
 
 
 @app.get("/")
@@ -48,148 +64,77 @@ async def health_check() -> Dict[str, str]:
     }
 
 
-# Словарь для маппинга популярных названий городов к IANA часовым поясам
-TIMEZONE_MAPPING = {
-    "ekaterinburg": "Asia/Yekaterinburg",
-    "yekaterinburg": "Asia/Yekaterinburg",
-    "moscow": "Europe/Moscow",
-    "saint petersburg": "Europe/Moscow",
-    "petersburg": "Europe/Moscow",
-    "spb": "Europe/Moscow",
-    "kiev": "Europe/Kiev",
-    "kyiv": "Europe/Kiev",
-    "london": "Europe/London",
-    "paris": "Europe/Paris",
-    "berlin": "Europe/Berlin",
-    "new york": "America/New_York",
-    "los angeles": "America/Los_Angeles",
-    "tokyo": "Asia/Tokyo",
-    "beijing": "Asia/Shanghai",
-    "shanghai": "Asia/Shanghai",
-}
-
-
-def parse_time_string(time_str: str) -> datetime:
-    """
-    Парсит строку времени в разных форматах и возвращает datetime в UTC
-    """
-    time_str = time_str.strip()
-    
-    # Пробуем разные форматы
-    formats = [
-        "%H:%M:%S",      # 15:00:00
-        "%H:%M",         # 15:00
-        "%Y-%m-%d %H:%M:%S",  # 2024-01-15 15:00:00
-        "%Y-%m-%d %H:%M",     # 2024-01-15 15:00
-        "%Y-%m-%dT%H:%M:%S",  # 2024-01-15T15:00:00
-        "%Y-%m-%dT%H:%M",     # 2024-01-15T15:00
-    ]
-    
-    for fmt in formats:
-        try:
-            dt = datetime.strptime(time_str, fmt)
-            # Если указано только время, используем сегодняшнюю дату
-            if "%Y" not in fmt:
-                today = datetime.now(ZoneInfo("UTC")).date()
-                dt = datetime.combine(today, dt.time())
-            # Предполагаем, что входное время в UTC
-            return dt.replace(tzinfo=ZoneInfo("UTC"))
-        except ValueError:
-            continue
-    
-    raise ValueError(f"Не удалось распознать формат времени: {time_str}")
-
-
-def get_timezone(timezone_name: str) -> ZoneInfo:
-    """
-    Получает ZoneInfo объект по названию часового пояса
-    """
-    original_name = timezone_name.strip()
-    timezone_name_lower = original_name.lower()
-    
-    # Проверяем маппинг городов
-    if timezone_name_lower in TIMEZONE_MAPPING:
-        iana_name = TIMEZONE_MAPPING[timezone_name_lower]
-        try:
-            return ZoneInfo(iana_name)
-        except Exception:
-            pass
-    
-    # Пробуем использовать напрямую как IANA timezone (с сохранением регистра)
-    try:
-        return ZoneInfo(original_name)
-    except Exception:
-        pass
-    
-    # Пробуем найти похожее название в списке IANA timezones
-    for tz_name in pytz.all_timezones:
-        if timezone_name_lower == tz_name.lower() or timezone_name_lower in tz_name.lower():
-            try:
-                return ZoneInfo(tz_name)
-            except Exception:
-                continue
-    
-    raise ValueError(f"Часовой пояс '{original_name}' не найден. Используйте названия городов (Ekaterinburg, Moscow) или IANA timezone (Asia/Yekaterinburg, Europe/Moscow)")
-
-
 @app.get("/convert-time")
 async def convert_time(
-    time: str,
-    timezone: str
+    time: str = Query(..., description="Время в формате HH:MM или HH:MM:SS (UTC)"),
+    timezone: str = Query(..., description="Часовой пояс (например: Asia/Yekaterinburg, Europe/Moscow, America/New_York)")
 ) -> Dict[str, str]:
     """
     Конвертирует время из UTC в указанный часовой пояс
     
-    Параметры:
-    - time: Время в UTC (форматы: "15:00", "15:00:00", "2024-01-15 15:00:00")
-    - timezone: Название часового пояса (например: "Ekaterinburg", "Asia/Yekaterinburg", "Europe/Moscow")
-    
-    Пример: /convert-time?time=15:00&timezone=Ekaterinburg
-    Результат: 20:00 (UTC+5 для Екатеринбурга)
+    Примеры:
+    - time=15:00&timezone=Asia/Yekaterinburg -> 20:00 (UTC+5)
+    - time=15:30&timezone=Europe/Moscow -> 18:30 (UTC+3)
     """
     try:
-        # Парсим входное время (предполагаем UTC)
-        utc_time = parse_time_string(time)
+        # Парсим время
+        time_parts = time.split(":")
+        if len(time_parts) < 2:
+            raise ValueError("Неверный формат времени")
         
-        # Получаем целевой часовой пояс
-        target_tz = get_timezone(timezone)
+        hour = int(time_parts[0])
+        minute = int(time_parts[1])
+        second = int(time_parts[2]) if len(time_parts) > 2 else 0
         
-        # Конвертируем из UTC в целевой часовой пояс
+        if not (0 <= hour < 24 and 0 <= minute < 60 and 0 <= second < 60):
+            raise ValueError("Время вне допустимого диапазона")
+        
+        # Создаем datetime объект в UTC
+        today = datetime.now(pytz.UTC).date()
+        utc_time = pytz.UTC.localize(datetime.combine(today, datetime.min.time().replace(hour=hour, minute=minute, second=second)))
+        
+        # Получаем нужный часовой пояс
+        timezone_lower = timezone.lower().strip()
+        
+        # Сначала проверяем алиасы
+        if timezone_lower in TIMEZONE_ALIASES:
+            timezone = TIMEZONE_ALIASES[timezone_lower]
+        
+        try:
+            target_tz = pytz.timezone(timezone)
+        except pytz.exceptions.UnknownTimeZoneError:
+            # Попытка найти часовой пояс по частичному совпадению (для удобства)
+            all_timezones = pytz.all_timezones
+            matching_tz = [tz for tz in all_timezones if timezone_lower in tz.lower()]
+            if not matching_tz:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Часовой пояс '{timezone}' не найден. Используйте формат 'Region/City' (например: Asia/Yekaterinburg) или название города (Ekaterinburg, Moscow)"
+                )
+            if len(matching_tz) > 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Найдено несколько совпадений: {', '.join(matching_tz[:5])}. Уточните часовой пояс."
+                )
+            target_tz = pytz.timezone(matching_tz[0])
+        
+        # Конвертируем время
         converted_time = utc_time.astimezone(target_tz)
         
         return {
-            "input_time_utc": utc_time.strftime("%Y-%m-%d %H:%M:%S UTC"),
-            "input_time": time,
-            "target_timezone": str(target_tz),
-            "converted_time": converted_time.strftime("%Y-%m-%d %H:%M:%S"),
-            "converted_time_only": converted_time.strftime("%H:%M:%S"),
-            "time_only": converted_time.strftime("%H:%M"),
-            "offset": converted_time.strftime("%z"),
-            "timezone_name": str(target_tz)
+            "input_time_utc": time,
+            "input_timezone": "UTC",
+            "output_time": converted_time.strftime("%H:%M:%S"),
+            "output_time_short": converted_time.strftime("%H:%M"),
+            "output_datetime": converted_time.isoformat(),
+            "output_timezone": str(converted_time.tzinfo),
+            "timezone_name": target_tz.zone,
+            "utc_offset": converted_time.strftime("%z")
         }
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise HTTPException(status_code=400, detail=f"Ошибка парсинга времени: {str(e)}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка конвертации: {str(e)}")
-
-
-@app.get("/timezones")
-async def list_timezones() -> Dict[str, list]:
-    """
-    Возвращает список доступных часовых поясов (города из маппинга)
-    """
-    return {
-        "supported_cities": list(TIMEZONE_MAPPING.keys()),
-        "example_iana_timezones": [
-            "Asia/Yekaterinburg",
-            "Europe/Moscow",
-            "Europe/Kiev",
-            "America/New_York",
-            "Europe/London",
-            "Asia/Tokyo"
-        ],
-        "note": "Можно использовать как названия городов, так и IANA timezone названия"
-    }
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка: {str(e)}")
 
 
 if __name__ == "__main__":
